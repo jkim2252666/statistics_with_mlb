@@ -1,0 +1,115 @@
+#챕터 6
+#2차함수 사고하기
+x<--5:5
+y<-x^2+x
+plot(x,y,type="b")
+
+# 팀별 연봉
+library(Lahman)
+a<-subset(Salaries,yearID>2010)
+b<-subset(Batting,yearID>2010)
+c<-merge(a,b,by="playerID")
+c$teamyear<-paste(c$teamID.x,c$yearID.x,sep="")
+c<-subset(c,AB>400)
+require(plyr)
+func_1<-function(c){return(data.frame(sd=sd(c$salary)))}
+team_sd<-ddply(c, .(teamyear), func_1)
+d<-subset(Teams,yearID>2010)
+d$wp<-d$W/d$G
+d$teamyear<-paste(d$teamID, d$yearID,sep="")
+e<-merge(team_sd,d,by="teamyear")
+plot(e$sd,e$wp)
+lines(smooth.spline(e$sd,e$wp))
+summary(lm(wp~sd, data=e))
+summary(lm(wp~I(sd)+I((sd)^2), data=e))
+
+#고차함수 사고하기
+x<--4:4
+y<--x^3
+plot(x,y,type="l")
+
+x<--4:4
+y<--x^3+10*x
+plot(x,y,type="l")
+
+a<-subset(Pitching,playerID=="johnto01")
+sum(a$W)
+sum(a$W[a$yearID>1974])
+
+# 토미 존 수술
+surgery<-data.frame(matrix(c("johnto01","smoltjo01","zimmejo02","strasst01",
+"carpech01",1974,2000,2009,2010,2007),ncol=2))
+colnames(surgery)<-c("playerID","date")
+surgery$date<-as.numeric(as.character(surgery$date))
+a<-subset(Pitching,playerID=="johnto01"|playerID=="smoltjo01"|
+playerID=="zimmejo02"|playerID=="strasst01"|
+playerID=="carpech01")
+b<-merge(a,surgery, by="playerID")
+b$age<-b$yearID-b$date
+c<-subset(b,age>-6&age<6)
+plot(c$age,c$W)
+lines(smooth.spline(c$age,c$W))
+
+f<-lm(W~I(age)+I(age^2),data=c)
+summary(f)
+
+# 리그별 홈런의 관중 동원 효과: 리그의 조절효과
+library(Lahman)
+Teams$attend<-Teams$attendance/Teams$G
+Teams$lgID<-relevel(Teams$lgID,ref="AL")
+plot(Teams$HR, Teams$attend, type="n")
+summary(lm(attend~HR,data=Teams))
+
+#그림 6.10 홈런수와 게임당 관중수 관계선
+plot(Teams$HR,Teams$attend,type="n")
+abline(lm(attend~HR,data=Teams))
+
+#다중회귀
+a<-subset(Teams,lgID=="AL"|lgID=="NL")
+plot(a$HR,a$attend,type="n")
+b<-lm(attend~HR+lgID, data=a)
+abline(coef(b)[1],coef(b)[2],lwd=2,lty=2)
+abline(coef(b)[1]+coef(b)[3],coef(b)[2],lwd=2)
+summary(lm(attend~HR+lgID,data=a))
+
+# 리그차이의 조절효과
+plot(Teams$HR,Teams$attend,type="n")
+d<-lm(attend~HR*lgID,data=a)
+abline(coef(d)[1],coef(d)[2],lwd=2,lty=2)
+abline(coef(d)[1]+coef(d)[3],coef(d)[2]+coef(d)[4],lwd=2)
+summary(lm(attend~HR*lgID,data=a))
+
+# 다수준혼합모델로 메이저리그 팀승수 추정하기
+library(Lahman)
+a<-subset(Teams, lgID=="AL"|lgID=="NL")
+a<-na.omit(a)
+a$AVG<-a$H/a$AB
+a$division<-paste(a$lgID,a$divID)
+b<-lm(W~AVG,data=a)
+summary(b)
+c<-glm(W~AVG,data=a)
+summary(c)
+
+library(arm)
+d<-lmer(W~AVG+(1|lgID/division),data=a)
+display(d)
+
+# 그림 6.13 지구 간 다른 기울기를 통해 지구효과의 확인
+library(ggplot2)
+ggplot(a,aes(a$W,a$AVG))+geom_point(size=0.5)
++stat_smooth(method="lm",col="black")+facet_wrap(~division)
++labs(x="AVG", y="Games won")
+
+# 단순선형모델, 임의효과모델, 고정효과모델의 비교
+a<-Teams[Teams$yearID==2014|Teams$yearID==2013|Teams$yearID==2012,]
+a$wp<-a$W/a$G
+#단순선형모델
+summary(lm(wp~SF,data=a))
+#임의효과모델
+install.packages("plm")
+library(plm)
+summary(plm(wp~SF,data=a,index=c("teamID","yearID"),model="random"))
+#고정효과모델
+summary(plm(wp~SF,data=a,index=c("teamID","yearID"),model="within"))
+
+

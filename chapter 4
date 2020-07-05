@@ -1,0 +1,145 @@
+# 챕터 4
+# 확률과 우도
+a<-rbinom(10000,5,0.46)
+table(a)/10000
+b<-rbinom(1000,5,0.46)
+table(b)/1000
+
+#출루의 조건: 최대우도추정법
+curve(log(10*x^2*(1-x)^3),0,1,ylab="Log Probability",xlab="OBP")
+
+OBP<-0.4
+base<-0:5
+P<-OBP^base*(1-OBP)^(5-base)
+case<-choose(5,base)
+EV<-P*case
+EV
+barplot(EV)
+
+# 타율에 따라 달라지는 확률분포
+par(mfrow=c(2,2))
+
+#출루율 2할 타자의 막대그래프
+OBP<-0.2
+base<-0:5
+P<-OBP^base*(1-OBP)^(5-base)
+case<-choose(5,base)
+EV<-P*case
+barplot(EV,main="OBP=0.2 (20.48%)",ylab="possibility")
+
+#출루율 3할 타자의 막대그래프
+OBP<-0.3
+base<-0:5
+P<-OBP^base*(1-OBP)^(5-base)
+case<-choose(5,base)
+EV<-P*case
+barplot(EV,main="OBP=0.3 (30.87%)",ylab="possibility")
+
+#출루율 4할 타자의 막대그래프
+OBP<-0.4
+base<-0:5
+P<-OBP^base*(1-OBP)^(5-base)
+case<-choose(5,base)
+EV<-P*case
+barplot(EV,main="OBP=0.4 (34.56%)",ylab="possibility")
+
+#출루율 5할 타자의 막대그래프
+OBP<-0.5
+base<-0:5
+P<-OBP^base*(1-OBP)^(5-base)
+case<-choose(5,base)
+EV<-P*case
+barplot(EV,main="OBP=0.5 (31.25%)",ylab="possibility")
+
+#중심극한정리란?
+library(sand)
+library(igraph)
+g<-graph.formula(1-5,1-7,2-9,2-4,3-5,4-5,4-6,4-7)
+V(g)
+E(g)
+plot(g)
+
+# 그림 4.12 관측자료가 많은 경우의 확률분포
+a<-subset(Batting,yearID>2011&yearID<2016&AB>=300)
+hist(a$H,main="949 players",breaks=seq(from=0,to=300,by=30))
+
+# 그림 4.13 관측자료가 적은 경우의 확률분포
+a<-subset(Batting,yearID>2011&yearID<2016&AB>=300&teamID=="NYA")
+hist(a$H,main="32 players",breaks=seq(from=0,to=300,by=30))
+
+# 그림 4.14 정규분포와 t 분포의 차이
+curve(dnorm(x),-4,4,ylab="density")
+curve(dt(x,df=3),add=TRUE,lty=2)
+
+# 그림 4.16 비선형관계선의 로그변형
+par(mfrow=c(1,2))
+x<-c(1,2,4,8,16)
+y<-c(1,2,3,4,5)
+plot(x,y,type="b",lwd=3,main="Before Transformation")
+x_adj<-log(x)
+plot(x_adj,y,type="b",lwd=3,main="After Transformation")
+
+# 예측모델의 등분산성 확인
+library(Lahman)
+rec<-subset(Teams,yearID==2014)
+rec$wp<-rec$W/rec$G
+a<-lm(wp~R,rec)
+library(lmtest)
+bptest(a)
+
+# Box Cox 변형을 이용한 이분산 가능성 개선
+library(caret)
+b<-BoxCoxTrans(rec$wp)
+c<-cbind(rec,wp_adj=predict(b,rec$wp))
+d<-lm(wp_adj~R,c)
+bptest(d)
+
+# 타율모델과 방어율모델 비교
+library(Lahman)
+rec<-subset(Teams,yearID==2014)
+rec$wp<-rec$W/rec$G
+rec$avg<-rec$H/rec$AB
+avg_model<-lm(wp~avg,rec)
+ERA_model<-lm(wp~ERA,rec)
+summary(avg_model)
+summary(ERA_model)
+
+# 팀타율 1푼의 가치는 2천 4백만 달러?
+library(Lahman)
+a<-subset(Teams, yearID>2000)
+a$avg<-H/AB
+a$wp<-W/G
+lm(wp~avg, a)
+
+# 팀승률 예측을 위해 만든 추정모델 해석하기
+install.packages("pwr")
+library(pwr)
+pwr.f2.test(1,NULL,0.01,0.05,0.95)
+
+a<-subset(Teams, lgID=="AL"|lgID=="NL")
+b<-sample(1:nrow(a),1302)
+c<-a[b,]
+c$avg<-c$H/c$AB
+c$wp<-c$W/c$G
+d<-lm(wp~avg,data=c)
+summary(d)
+summary.aov(d)
+
+# 팀승률 신뢰성 있게 예측하기
+a<-subset(Teams, lgID=="AL"|lgID=="NL")
+b<-sample(1:nrow(a),1302)
+c<-a[b,]
+c$avg<-c$H/c$AB
+c$wp<-c$W/c$G
+d<-lm(wp~avg,data=c)
+summary(d)
+
+#신뢰구간
+0.08036 *(sqrt((1/1302)+((0.270-mean(c$avg))^2/sum((c$avg-mean(c$avg))^2))))
+e<-data.frame(avg=0.270)
+predict(d,e, level=0.95,interval="confidence")
+
+#예측구간
+e<-data.frame(avg=0.270)
+predict(d,e,level=0.95,interval="predict")
+0.08036 *(sqrt(1+(1/1302)+((0.270-mean(c$avg))^2/sum((c$avg-mean(c$avg))^2))))

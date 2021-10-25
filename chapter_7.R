@@ -1,0 +1,222 @@
+# chapter 7
+# Machine Learning
+# pre requisites for machine learning
+result<-data.frame(matrix(nrow=5,ncol=1))
+colnames(result)<-c("V1")
+for (i in 1:200){
+  result[i]<-sample(1:5,5,replace=F)
+}
+game<-data.frame(t(result))
+colnames(game)<-c("first","second","third","fourth","fifth")
+game<-ifelse(game==5,"kim",
+             ifelse(game==4,"lee",
+                    ifelse(game==3,"park",
+                           ifelse(game==2,"jung","yun"))))
+game<-data.frame(game)
+
+a=rbinom(10,1,0.8)
+b=rbinom(10,1,0.7)
+c=rbinom(10,1,0.5)
+v<-ifelse(game$third=="kim",a,ifelse(game$fourth=="kim",b,c))
+
+win<-data.frame(v)
+order<-cbind(game,win)
+text<-with(order,paste(first,second,third,fourth,fifth,sep=" "))
+lineup<-data.frame(cbind(order$v,text))
+colnames(lineup)<-c("win","text")
+
+
+# Bayes Rule
+x<-rnorm(1000); y<-rnorm(1000)
+xhist <- hist(x,plot=FALSE); yhist <- hist(y,plot=FALSE)
+xmin <- min(x); xmax <- max(x); ymin <- min(y); ymax <- max(y)
+xcount<-xhist$counts; ycount<-yhist$counts
+
+## setting for scatterplot
+top <- max(c(xcount, ycount))
+xrange <- c(xmin,xmax);yrange <- c(ymin,ymax)
+m <- matrix(c(2, 0, 1, 3), 2, 2, byrow = TRUE)
+layout(m, c(3,1), c(1,3), TRUE)
+
+## scatterplot
+par(mar=c(0,0,1,1))
+plot(x,y)
+text(x=2,y=-3.2,label="horizontal strikezone")
+text(x=-3,y=1.7,label="vertical strikezone",srt=90)
+
+## histogram above scatterplot
+par(mar=c(0,0,1,1))
+barplot(xhist$counts, axes=FALSE, ylim=c(0, top), space=0)
+
+## histogram on the right of scatterplot
+par(mar=c(3,0,1,1))
+barplot(yhist$counts, axes=FALSE, xlim=c(0, top), space=0, horiz=TRUE)
+
+# machine learning: data, answer key, and bayes rule
+library(caret)
+library(quanteda)
+set.seed(27326)
+target <- createDataPartition(lineup$win, times = 1,p = 1, list = FALSE)
+train<- lineup[target,]
+train_a <- tokens(as.character(train$text), what = "word")
+train_a <- tokens_ngrams(train_a, n = 2:5)
+train_dfm <- dfm(train_a, tolower = FALSE)
+train_matrix <- as.matrix(train_dfm)
+train_full <- cbind(win = train$win, data.frame(train_matrix))
+train_b <- createMultiFolds(train_full$win, k = 3, times=2)
+train_parameter <- trainControl(method = "repeatedcv", number=5, repeats=2, train_b)
+train_model <- train(win ~ ., data = train_full, method = "rpart", trControl =
+                       train_parameter, tuneLength = 10)
+library(gtools)
+test.p<-permutations(5,5)
+test.f<-data.frame(ifelse(test.p=="5","kim",
+                          ifelse(test.p=="4","lee",
+                                 ifelse(test.p=="3","park",
+                                        ifelse(test.p=="2","jung","yun")))))
+test<-data.frame(with(test.f,paste(X1,X2,X3,X4,X5,sep=" ")))
+colnames(test)<-c("text")
+test_a <- tokens(as.character(test$text), what = "word")
+test_a <- tokens_ngrams(tokens_tolower(test_a), n = 2:5)
+test_dfm <- dfm(test_a)
+test_matrix <- data.frame(as.matrix(test_dfm))
+preds <- predict(train_model, test_matrix,type="prob")
+prob<-data.frame(preds)
+lineup_prob<-cbind(test,prob$X1)
+View(lineup_prob)
+
+# document classification using supervised learning
+library(Lahman)
+a_doc<-subset(Schools,sel=c(name_full,city,state))
+a_doc$b_doc<-with(a_doc,paste(name_full,city,state,sep=" "))
+a_doc$label<-1
+aa_doc<-subset(a_doc,sel=c(b_doc,label))
+c_doc<-subset(Teams,sel=c(name,park))
+c_doc$b_doc<-with(c_doc,paste(name,park,seep=" "))
+c_doc$label<-0
+cc_doc<-subset(c_doc,sel=c(b_doc,label))
+df<-rbind(aa_doc,cc_doc)
+colnames(df)<-c("text","label")
+df$label<-ifelse(df$label==1,"YES","NO")
+df$label<-as.factor(df$label)
+df$id<-sample(1:length(df$label),length(df$label), replace=F)
+df<-df[order(df$id),]
+## modeling = train, test, and real data
+modeling_data<-df[1:3499,]
+## real_data
+real_data<-df[3500:4102,]
+real_data<-subset(real_data,sel=c("text"))
+
+## developing a classification model using supervised learning
+
+#Copyright 2017 Data Science Dojo
+#Licensed under the Apache License, Version 2.0 (the "License");
+#you may not use this file except in compliance with the License.
+#You may obtain a copy of the License at
+#http://www.apache.org/licenses/LICENSE-2.0
+#Unless required by applicable law or agreed to in writing, software
+#distributed under the License is distributed on an "AS IS" BASIS,
+#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#See the License for the specific language governing permissions and
+#limitations under the License.
+
+library(caret)
+set.seed(12568)
+select<-createDataPartition(modeling_data$label, p=0.7, list = FALSE)
+train<-modeling_data[select,]
+test <-modeling_data[-select,]
+library(quanteda)
+lowered_t<-tokens_tolower(tokens(train$text, remove_numbers=TRUE, what = "word"))
+stemmed_t<-tokens_wordstem((tokens_select(lowered_t, stopwords(language =
+                                                                 "english"),selection = "remove")))
+gram_t<-tokens_ngrams(stemmed_t, n = 1:2)
+gram_t_m <- as.matrix(dfm(gram_t))
+full_train <- cbind(label = train$label, data.frame(gram_t_m))
+set.seed(27583)
+fit <- trainControl("repeatedcv", number = 3, repeats = 2)
+train_model<- train(label ~ ., data = full_train, method = "rpart", trControl =fit,
+                    tuneLength = 7)
+lowered_te <- tokens_tolower(tokens(test$text, remove_numbers=TRUE, what = "word"))
+stemmed_te <- tokens_wordstem((tokens_select(lowered_te, stopwords(language =
+                                                                     "english"),selection = "remove")))
+gram_te <- tokens_ngrams(stemmed_te, n = 1:2)
+test_dfm<-dfm_select(dfm(gram_te), pattern = dfm(gram_t))
+matrix_test<-as.matrix(test_dfm)
+full_test<-data.frame(label=test$label,matrix_test)
+preds <- predict(train_model, full_test)
+confusionMatrix(preds, full_test$label,positive="YES")
+
+# classification results
+real<-data.frame(real_data$text)
+names(real) <- c("Text")
+real$Text<-as.character(real$Text)
+lowered_real <- tokens_tolower(tokens(real$Text,remove_numbers = TRUE, what =
+                                        "word"))
+stemmed_real <- tokens_wordstem((tokens_select(lowered_real, stopwords(language =
+                                                                         "english"),selection = "remove")))
+gram_real <- tokens_ngrams(stemmed_real, n = 1:2)
+real_dfm<-dfm_select(dfm(gram_real), pattern = dfm(gram_t))
+real_matrix<-as.matrix(real_dfm)
+full_real<-data.frame(real_matrix)
+preds <- predict(train_model,full_real)
+class<-ifelse(preds=="YES","SCHOOL","NON-SCHOOL")
+report<-cbind(real_data,class)
+write.csv(report,"data_classification.csv")
+
+# Text and the history of machine learning
+library(Lahman)
+a_doc<-subset(Schools,sel=c(name_full,city,state))
+a_doc$b_doc<-with(a_doc,paste(name_full,city,state,sep=" "))
+a_doc$label<-1
+aa_doc<-subset(a_doc,sel=c(b_doc,label))
+c_doc<-subset(Teams,sel=c(name,park))
+c_doc$b_doc<-with(c_doc,paste(name,park,seep=" "))
+c_doc$label<-0
+cc_doc<-subset(c_doc,sel=c(b_doc,label))
+df<-rbind(aa_doc,cc_doc)
+text<-df$b_doc
+library(caret)
+indexes <- createDataPartition(df$label, times = 1,
+                               p = 0.7, list = FALSE)
+train <- df[indexes,]
+names(train)<-c("text","label")
+test <- df[-indexes,]
+names(test)<-c("text","label")
+library(keras)
+max_feature<-2000
+tokenizer<-text_tokenizer(max_feature)
+tokenizer %>% fit_text_tokenizer(text)
+train_texttrain<-texts_to_sequences(tokenizer,train$text)
+test_textdata<-texts_to_sequences(tokenizer,test$text)
+vec_token <- function(text, dim = 2000) {
+  vec <- matrix(0, nrow = length(text), ncol = dim)
+  for (i in 1:length(text))
+    vec[i, text[[i]]] <- 1
+  vec
+}
+x_train <- vec_token(train_texttrain)
+x_test <- vec_token(test_textdata)
+y_train <- train$label
+y_test <- test$label
+model <- keras_model_sequential() %>%
+  layer_dense(units = 16, activation = "relu", input_shape = c(2000)) %>%
+  layer_dense(units = 16, activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+model
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+model %>% fit(x_train, y_train, epochs = 10, batch_size = 300)
+results <- model %>% evaluate(x_test, y_test)
+model %>% predict(x_test[359:390,])
+
+## decomposing texts into sentences.
+library(readtext)
+library(tokenizers)
+data_dir<-system.file("extdata/", package="readtext")
+doc<-readtext(paste0(data_dir, "/team_introduction/*.txt"))
+a<-unlist(tokenize_sentences(doc$text))
+write.csv(a,"document.csv")
+
+

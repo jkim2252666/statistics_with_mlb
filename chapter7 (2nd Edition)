@@ -154,7 +154,7 @@ lowered_real <- tokens_tolower(tokens(real$Text,remove_numbers = TRUE, what =
 stemmed_real <- tokens_wordstem((tokens_select(lowered_real, stopwords(language =
                                                                          "english"),selection = "remove")))
 gram_real <- tokens_ngrams(stemmed_real, n = 1:2)
-real_dfm<-dfm_select(dfm(gram_real), pattern = dfm(gram_t))
+real_dfm<-dfm_match(dfm(gram_real), gram_t)
 real_matrix<-as.matrix(real_dfm)
 full_real<-data.frame(real_matrix)
 preds <- predict(train_model,full_real)

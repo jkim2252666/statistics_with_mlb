@@ -85,7 +85,7 @@ lineup_prob<-cbind(test,prob$X1)
 View(lineup_prob)
 
 # document classification using supervised learning 
-# 지도학습으로 문서 
+# 지도학습으로 문서  
 library(Lahman)
 a_doc<-subset(Schools,sel=c(name_full,city,state))
 a_doc$b_doc<-with(a_doc,paste(name_full,city,state,sep=" "))

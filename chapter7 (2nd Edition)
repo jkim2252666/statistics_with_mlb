@@ -139,7 +139,7 @@ lowered_te <- tokens_tolower(tokens(test$text, remove_numbers=TRUE, what = "word
 stemmed_te <- tokens_wordstem((tokens_select(lowered_te, stopwords(language =
                                                                      "english"),selection = "remove")))
 gram_te <- tokens_ngrams(stemmed_te, n = 1:2)
-test_dfm<-dfm_select(dfm(gram_te), pattern = dfm(gram_t))
+test_dfm<-dfm_match(dfm(gram_te), gram_t)
 matrix_test<-as.matrix(test_dfm)
 full_test<-data.frame(label=test$label,matrix_test)
 preds <- predict(train_model, full_test)

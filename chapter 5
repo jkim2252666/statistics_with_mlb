@@ -1,13 +1,25 @@
 # 챕터 5
 #시각적 비교
 library(Lahman)
-a<-subset(Batting,
-playerID=="rodrial01"|playerID=="pujolal01"|playerID=="mcgwima01")
-a$name<-factor(a$playerID,levels=c("rodrial01","pujolal01","mcgwima01"), 
-labels=c("Rodriguez","Pujols","McGwire"))
-boxplot(a$HR~a$name)
-boxplot(HR~name, data=a)
-fivenum(a$HR[a$playerID=="pujolal01"])
+library(tidyverse)
+df<-
+  Batting %>% subset(playerID=="rodrial01"|playerID=="pujolal01"|
+                       playerID=="mcgwima01")%>%
+  select(playerID,HR)
+df$name<-factor(df$playerID, levels=c("rodrial01","pujolal01","mcgwima01"),
+                labels=c("Rodriguez","Pujols","McGwire"))
+library(rstatix)
+library(ggpubr)
+ana<-
+  df %>%
+  group_by(name) %>%
+  get_summary_stats()
+box <- ggboxplot(df, "name", "HR", add = "jitter",ggtheme = theme_bw())
+stat <- ggsummarytable(ana, "name", c("n","max","q3","median","q1","min"),
+                       ggtheme = theme_bw())+ clean_table_theme()
+ggarrange(box, stat, ncol = 1, align = "v", heights = c(0.70, 0.30))
+sort(df$HR[df$name=="Pujols"],decreasing=FALSE)
+fivenum(df$HR[df$name=="Pujols"])
 
 # 모델에 영향을 주는 이상치를 찾아라
 library(Lahman)
@@ -22,11 +34,11 @@ par(mfrow=c(1,2))
 x<-seq(0.15,0.35,0.01)
 y<-dnorm(x,0.25,0.03)
 plot(x,y,xlab="AVG",ylab="Frequency",
-main="Less competitive (SD=0.03)",type="l")
+     main="Less competitive (SD=0.03)",type="l")
 t<-seq(0.15,0.35,0.01)
 u<-dnorm(x,0.25,0.02)
 plot(t,u,xlab="AVG",ylab="Frequency",
-main="Highly competitive (SD=0.02)",type="l")
+     main="Highly competitive (SD=0.02)",type="l")
 
 # 시즌타율 3할의 효과 40년간의 관찰: 패키지 plyr
 library(Lahman)
@@ -35,7 +47,7 @@ a<-subset(Batting,yearID>1975&yearID<2017,select=c("yearID","AB","H","G"))
 a$avg<-a$H/a$AB
 a<-na.omit(a)
 func<-function(a){return(data.frame(
-sd=sd(a$avg[a$AB>400]),mean=mean(a$avg[a$AB>400])))}
+  sd=sd(a$avg[a$AB>400]),mean=mean(a$avg[a$AB>400])))}
 env<-ddply(a, .(yearID), func)
 env$z<-(0.3-env$mean)/env$sd
 env$per<-pnorm(0.3,env$mean,env$sd, lower.tail=TRUE)
@@ -49,14 +61,14 @@ lines(smooth.spline(env$yearID,env$per))
 
 # 시즌타율 표준편차가 적을수록 야구장에 관중들이 더 모인다?
 b<-subset(Teams,yearID>1975&yearID<2017,
-select=c("teamID","G","yearID","attendance"))
+          select=c("teamID","G","yearID","attendance"))
 b$att<-(b$attendance/b$G)
 c<-subset(b,teamID=="ATL"|teamID=="BAL"|teamID=="BOS"|teamID=="CHA"|
-teamID=="CHN"|teamID=="CIN"|teamID=="CLE"|teamID=="DET"|
-teamID=="HOU"|teamID=="KCA"|teamID=="LAN"|teamID=="MIN"|
-teamID=="NYA"|teamID=="NYN"|teamID=="OAK"|teamID=="PHI"|
-teamID=="PIT"|teamID=="SDN"|teamID=="SFN"|teamID=="SLN"|
-teamID=="TEX")
+            teamID=="CHN"|teamID=="CIN"|teamID=="CLE"|teamID=="DET"|
+            teamID=="HOU"|teamID=="KCA"|teamID=="LAN"|teamID=="MIN"|
+            teamID=="NYA"|teamID=="NYN"|teamID=="OAK"|teamID=="PHI"|
+            teamID=="PIT"|teamID=="SDN"|teamID=="SFN"|teamID=="SLN"|
+            teamID=="TEX")
 
 func_1<-function(c){return(data.frame(sum=sum(c$att)))}
 attend<-ddply(c, .(yearID), func_1)
@@ -76,9 +88,9 @@ install.packages("pwr")
 library(pwr)
 power.t.test(NULL,0.2,2,.05,0.95,type=c("two.sample"))
 library(Lahman)
-a<-subset(Batting,yearID>1972)
-b<-subset(a,lgID=="AL"&G>10)
-c<-subset(a,lgID=="NL"&G>10)
+a<-subset(Batting,yearID>1972&yearID<2020)
+b<-subset(a,lgID=="AL"&G>50)
+c<-subset(a,lgID=="NL"&G>50)
 d<-sample(1:nrow(b), size=2600)
 e<-sample(1:nrow(c), size=2600)
 g<-b[d,]
@@ -88,54 +100,55 @@ i$lgID<-as.character(i$lgID)
 table(i$lgID)
 boxplot(HBP~lgID,data=i,main="HBP comparison")
 t.test(i$HBP[i$lgID=="AL"],i$HBP[i$lgID=="NL"])
-a<-subset(Batting,yearID>1972)
-b<-subset(a,G>10)
-mean(b$HBP[b$lgID=="AL"])
-mean(b$HBP[b$lgID=="NL"])
+
+d<-subset(a,G>50)
+
+mean(d$HBP[d$lgID=="AL"])
+mean(d$HBP[d$lgID=="NL"])
 
 # 그룹간 비교 시각화 방법: 패널차트
-install.packages(“ggplot2”)
 library(ggplot2)
 library(Lahman)
-a<-subset(Teams,yearID>1990)
+a<-subset(Teams,yearID>1990&yearID<2017)
 b<-a$attendance/162
 affiliation<-paste(a$lgID,a$divID)
 c<-cbind(a,b,affiliation)
-ggplot(c, aes(b))+geom_density()+labs(x="attendance per game")
-+geom_vline(xintercept=c(11800,14500,18700),linetype="dashed")
+ggplot(c, aes(b))+geom_density()+
+  labs(x="attendance per game")+
+  geom_vline(xintercept=c(11800,14500,18700),linetype="dashed")
 
 # 그림 5.17 지구별 게임당 관중수를 보여주는 패널 확률분포곡선
-ggplot(c,aes(b))+geom_density()
-+labs(x="attendance per game")
-+theme(axis.text.x=element_blank())+facet_grid(.~affiliation)
+ggplot(c,aes(b))+geom_density()+
+  labs(x="attendance per game")+
+  theme(axis.text.x=element_blank())+facet_grid(.~affiliation)
 
 # 그림 5.18 지구별 시즌 승수가 관중수에 미치는 영향
-ggplot(c,aes(c$W,c$b))+geom_point(size=0.5)
-+stat_smooth(method="lm",col="black")+facet_wrap(~affiliation)
-+labs(x="Games won", y="Attendance per game")
+ggplot(c,aes(W,b))+geom_point(size=0.5)+
+  stat_smooth(method="lm",col="black")+facet_wrap(~affiliation)+
+  labs(x="Games won", y="Attendance per game")
 
 t.test(b[affiliation=="NL W"],b[affiliation=="AL C"])
 t.test(b[affiliation=="AL E"],b[affiliation=="NL C"])
+
 d<-subset(c,c$affiliation==c("NL W","AL E","NL C","AL C"))
 boxplot(d$b~d$affiliation)
 
 # 구글 트렌드와 분산분석 연계 - 책을 보면서 실행하기를 추천드립니다.
-pop <- read_csv("C:/Desktop/pop.csv") # 해당파일은 직접 구글 트렌드에서 다운받아서 import해야 합니다.
-a<-strsplit(as.character(pop$Week),”-”)
-## 그림 5.25 세로로 정렬된 날짜 데이터 행의 갯수가 6개인 경우
-b<-data.frame(matrix(unlist(a), ncol=6, byrow=TRUE))
-## 그림 5.25 세로로 정렬된 날짜 데이터 행의 갯수가 2개인 경우
+library(readr)
+pop <- read_csv("C:/your_path_directory/popularity.csv")
+colnames(pop)<-c("month","ny","boston","la","chicago","st")
+a<-strsplit(as.character(pop$month),"-")
 b<-data.frame(matrix(unlist(a), ncol=2, byrow=TRUE))
 c<-cbind(pop, b)
-d<-c[!(c$X2==1)&!(c$X2==2)&!(c$X2==3)&!(c$X2==10)&!(c$X2==11)&!(c$X2==12),]
-attach(d)
-e<-data.frame(PHI,BOS,NYY,LAD,SF)
-e<-data.frame(PHI,BOS,NYY,LAD,SF)
-boxplot(e)
-f<-stack(e)
-g<-aov(values~ind, data=f)
-summary(g)
-TukeyHSD(g, which="ind")
+c$X2<-as.numeric(as.character(c$X2))
+d<-c[!((c$X2==1)|(c$X2==2)|(c$X2==3)|(c$X2==10)|(c$X2==11)|(c$X2==12)),]
+with(d,boxplot(ny,boston,la,chicago,st,
+               names=c("ny","boston","la","chicago","st")))
+d[c(1,7,8)]<-NULL
+df<-stack(d)
+anova<-aov(values~ind,df)
+summary(anova)
+TukeyHSD(anova, which="ind")
 
 #데이터를 분리해 필요한 부분만 취하다: 스트링 변수
 player<-c("A","B","C","D","E","F")
@@ -167,6 +180,24 @@ c<-paste(a,b)
 c
 c<-paste(a,b,sep="")
 c
+
+player<-c("ZaB-A","XaB-B","SaB-C","TaB-D","UaB-E","KaB-F")
+AVG<-c(0.315,0.257,0.266,0.198,0.227,0.305)
+a<-data.frame(player,AVG)
+
+#-만 제거
+gsub("-","",a$player)
+#-만 제거(위의 코드와 동일 결과)
+gsub("*\\-","",a$player)
+#-와 바로 앞 기호 제거
+gsub(".\\-","",a$player)
+#-와 앞 2개 기호 제거
+gsub("..\\-","",a$player)
+#-와 앞 3개 기호 제거
+gsub("...\\-","",a$player)
+#-와 앞 모든 기호 제거
+gsub(".*\\-","",a$player)
+
 
 # 내셔널리그, 아메리칸리그, 그리고 판별분석
 library(Lahman)
@@ -212,7 +243,7 @@ y<-1/(1+exp(-x))
 plot(x,y,lines(x,y, type="b"))
 
 library(Lahman)
-a<-subset(Teams, Teams$yearID>2014)
+a<-subset(Teams, yearID>2014&yearID<2017)
 a$d_win<-ifelse(a$DivWin=="Y",1,0)
 div<-(glm(d_win~ERA,data=a,family=binomial(link="logit")))
 summary(div)
@@ -224,7 +255,7 @@ c<-data.frame(ERA=seq(min(a$ERA),max(a$ERA)))
 c$d_win<-predict(div,newdata=c, type="response")
 library(ggplot2)
 ggplot(b, aes(x=b$ERA,y=b$success))+
-geom_point()+geom_line(aes(x=b$ERA,y=b$prob))
+  geom_point()+geom_line(aes(x=b$ERA,y=b$prob))
 
 #지구에서 우승할 팀, 우승하지 못할 팀, 그리고 딥러닝
 library(Lahman)
@@ -244,7 +275,7 @@ train$ID_a = class.ind(train$DivWin)
 test$ID_b = class.ind(test$DivWin)
 fitnn = nnet(ID_a~ERA+AVG+X3R+RR, train, size=3, softmax=TRUE)
 c<-table(data.frame(predicted=predict(fitnn,test)[,2]>0.5,
-actual=test$ID_b [,2]>0.5))
+                    actual=test$ID_b [,2]>0.5))
 c
 (c[1,1]+c[2,2])/(c[1,1]+c[1,2]+c[2,1]+c[2,2])
 
@@ -272,8 +303,3 @@ library(FactoMineR)
 pca.res<-PCA(team_st, graph=FALSE)
 fviz_contrib(pca.res, choice="var", axes=1,top=4)
 fviz_contrib(pca.res, choice="var", axes=2,top=4)
-
-
-
-
-

@@ -1,4 +1,19 @@
 # 챕터 4
+# 예측모델과 데이터가 있는 현실계
+library(Lahman)
+a<-subset(Batting,yearID>2010&yearID<2017&G>150)
+b<-subset(Master,sel=c("playerID","weight"))
+c<-merge(a,b,by="playerID")
+c$slg<-with(c,((H-X2B-X3B-HR)+2*X2B+3*X3B+4*HR)/AB)
+with(c,plot(weight,slg,type="n"))
+abline(lm(slg~weight,c))
+fit<-lm(slg~weight,c)
+fit_res<-resid(fit)
+plot(c$weight,fit_res)
+abline(0,0)
+qqnorm(fit_res)
+qqline(fit_res)
+
 # 확률과 우도
 a<-rbinom(10000,5,0.46)
 table(a)/10000
@@ -106,10 +121,12 @@ summary(ERA_model)
 
 # 팀타율 1푼의 가치는 2천 4백만 달러?
 library(Lahman)
-a<-subset(Teams, yearID>2000)
+a<-subset(Teams, yearID==2015)
+attach(a)
 a$avg<-H/AB
-a$wp<-W/G
-lm(wp~avg, a)
+a$obp<-(H+BB+HBP)/(AB+BB+HBP+SF)
+a$r_g<-R/162
+lm(r_g~avg, a)
 
 # 팀승률 예측을 위해 만든 추정모델 해석하기
 install.packages("pwr")
@@ -135,11 +152,11 @@ d<-lm(wp~avg,data=c)
 summary(d)
 
 #신뢰구간
-0.08036 *(sqrt((1/1302)+((0.270-mean(c$avg))^2/sum((c$avg-mean(c$avg))^2))))
+0.463*(sqrt((1/1302)+((0.270-mean(c$avg))^2/sum((c$avg-mean(c$avg))^2))))
 e<-data.frame(avg=0.270)
 predict(d,e, level=0.95,interval="confidence")
 
 #예측구간
 e<-data.frame(avg=0.270)
 predict(d,e,level=0.95,interval="predict")
-0.08036 *(sqrt(1+(1/1302)+((0.270-mean(c$avg))^2/sum((c$avg-mean(c$avg))^2))))
+0.463*(sqrt(1+(1/1302)+((0.270-mean(c$avg))^2/sum((c$avg-mean(c$avg))^2))))

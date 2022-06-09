@@ -1,6 +1,6 @@
-# chapter 7
-# Machine Learning
-# pre requisites for machine learning
+# chapter 7 머신러닝
+
+# 타순정하기
 result<-data.frame(matrix(nrow=5,ncol=1))
 colnames(result)<-c("V1")
 for (i in 1:200){
@@ -26,7 +26,7 @@ lineup<-data.frame(cbind(order$v,text))
 colnames(lineup)<-c("win","text")
 
 
-# Bayes Rule
+# Bayes Rule 베이즈 
 x<-rnorm(1000); y<-rnorm(1000)
 xhist <- hist(x,plot=FALSE); yhist <- hist(y,plot=FALSE)
 xmin <- min(x); xmax <- max(x); ymin <- min(y); ymax <- max(y)
@@ -84,7 +84,7 @@ prob<-data.frame(preds)
 lineup_prob<-cbind(test,prob$X1)
 View(lineup_prob)
 
-# document classification using supervised learning
+# document classification using supervised learning 지도학습으로 문서 
 library(Lahman)
 a_doc<-subset(Schools,sel=c(name_full,city,state))
 a_doc$b_doc<-with(a_doc,paste(name_full,city,state,sep=" "))
@@ -106,7 +106,7 @@ modeling_data<-df[1:3499,]
 real_data<-df[3500:4102,]
 real_data<-subset(real_data,sel=c("text"))
 
-## developing a classification model using supervised learning
+## developing a classification model using supervised learning 지도학습으로 분류모델 
 
 #Copyright 2017 Data Science Dojo
 #Licensed under the Apache License, Version 2.0 (the "License");
@@ -162,7 +162,7 @@ class<-ifelse(preds=="YES","SCHOOL","NON-SCHOOL")
 report<-cbind(real_data,class)
 write.csv(report,"data_classification.csv")
 
-# Text and the history of machine learning
+# Text and the history of machine learning 글과 머신러닝의 (딥러닝 구현하기)
 library(Lahman)
 a_doc<-subset(Schools,sel=c(name_full,city,state))
 a_doc$b_doc<-with(a_doc,paste(name_full,city,state,sep=" "))
@@ -219,16 +219,3 @@ doc<-readtext(paste0(data_dir, "/team_introduction/*.txt"))
 a<-unlist(tokenize_sentences(doc$text))
 write.csv(a,"document.csv")
 
-
-© 2022 GitHub, Inc.
-Terms
-Privacy
-Security
-Status
-Docs
-Contact GitHub
-Pricing
-API
-Training
-Blog
-About

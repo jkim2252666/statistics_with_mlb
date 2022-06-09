@@ -1,0 +1,61 @@
+# 챕터 2
+
+# 순서가 같은 테이블 합치기
+a<-c("A","B","C","D","E")
+b<-c(0.280,0.257,0.312,0.266,0.295)
+c<-cbind(a, b)
+colnames(c) <- c("player","avg")
+c
+age<-c(26, 23, 31, 27, 24)
+d<-cbind(c,age)
+d
+
+# 순서가 다른 테이블 합치기
+d<-matrix(c("C","D","E","B","A",26,23,31,27,24),ncol=2)
+d
+colnames(d) <- c("player","age")
+colnames(c) <- c("player","avg")
+c
+e<-merge(c,d,by="player")
+e
+
+# 양적 변수를 명목 변수로 바꾸기
+a<-c("A","B","C","D","E")
+b<-c(0.280,0.257,0.312,0.266,0.295)
+c<-cbind(a, b)
+colnames(c) <- c("player","avg")
+d<-matrix(c("C","D","E","B","A",26,23,31,27,24),ncol=2)
+colnames(d) <- c("player","age")
+e<-merge(c,d,by="player")
+str(e)
+e$age<-as.numeric(e$age)
+e$age<-as.numeric(e$age)
+g<-ifelse(e$age>25,1,0)
+i<-ifelse(e$age>25,"blue","black")
+h<-cbind(e,g)
+
+# 괄호사용법
+# 소괄호
+c<-merge(a,b,by="Team")
+d<-cbind(a,b)
+# 중괄호
+a<-function(H,AB){H/AB}
+a(10,35)
+a(17,55)
+a(14,57)
+# 대괄호 (아래 두 코드는 작동되지 않습니다. 대괄호 쓰임새를 위해서 보여드리는 목적입니다.)
+b<-a[a$Team=="Giants",]
+a<-Pitching[Pitching$playerID=="kershcl01",]
+
+# 결측값 제거하기 (아래 코드는 작동되지 않습니다. 대괄호 쓰임새를 위해서 보여드리는 목적입니다.)
+b<-na.omit(a)
+
+# 조건문 사용하기
+library(Lahman)
+View(Master)
+a<-subset(Batting,playerID=="altuvjo01"|playerID=="zobribe01")
+b<-subset(a,yearID>2011&yearID<2017)
+c<-subset(b,!(yearID==2014|yearID==2015))
+d<-subset(c,select=c("playerID","HR","X3B"))
+
+
